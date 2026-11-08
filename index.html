@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Mémo commandes</title>
+  <meta name="description" content="Mon mémo de commandes Linux, Git, Python, Arduino et de fonctions.">
+  <meta name="theme-color" content="#0f3d56">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Mémo">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="barre">
+    <div class="titre">
+      <span class="logo">&gt;_</span>
+      <h1>Mémo commandes</h1>
+      <span id="compteur" class="compteur"></span>
+    </div>
+    <div class="actions-haut">
+      <button id="btn-installer" class="btn btn-clair" hidden>📲 Installer</button>
+      <button id="btn-menu" class="btn btn-clair" aria-label="Menu">⋮</button>
+    </div>
+    <div id="menu" class="menu" hidden>
+      <button data-action="exporter">💾 Exporter (sauvegarde)</button>
+      <button data-action="importer">📂 Importer une sauvegarde</button>
+      <button data-action="exemples">📘 Ajouter les commandes du guide</button>
+      <button data-action="theme">🌓 Thème clair / sombre</button>
+      <button data-action="tout-effacer" class="danger">🗑️ Tout effacer</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="outils">
+      <input id="recherche" type="search" placeholder="🔍 Rechercher…" autocomplete="off">
+      <select id="tri" aria-label="Trier">
+        <option value="recent">Plus récentes</option>
+        <option value="alpha">A → Z</option>
+        <option value="categorie">Par catégorie</option>
+      </select>
+    </div>
+    <div id="filtres" class="filtres"></div>
+
+    <table id="tableau" class="tableau">
+      <thead>
+        <tr><th>Commande / fonction</th><th>Rôle</th><th>Exemple</th><th>Catégorie</th><th></th></tr>
+      </thead>
+      <tbody id="lignes"></tbody>
+    </table>
+
+    <div id="vide" class="vide" hidden>
+      <p class="vide-titre">Aucune commande pour l'instant.</p>
+      <p>Ajoute ta première commande avec le bouton <b>+</b>, ou charge celles du guide Linux.</p>
+      <button class="btn" data-action="exemples">📘 Charger les commandes du guide</button>
+    </div>
+    <p id="aucun-resultat" class="vide" hidden>Aucun résultat pour cette recherche.</p>
+  </main>
+
+  <button id="btn-ajouter" class="fab" aria-label="Ajouter"><svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path d="M12 4v16M4 12h16" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button>
+
+  <dialog id="fenetre">
+    <form id="formulaire" method="dialog">
+      <h2 id="fenetre-titre">Nouvelle commande</h2>
+      <label>Commande ou fonction *
+        <input name="cmd" required placeholder="ex. ls -la   ou   np.linalg.norm(v)" autocapitalize="off" autocorrect="off" spellcheck="false">
+      </label>
+      <label>Rôle *
+        <input name="role" required placeholder="ex. Lister tous les fichiers, même cachés">
+      </label>
+      <label>Exemple
+        <input name="exemple" placeholder="ex. ls -la ~/projets" autocapitalize="off" autocorrect="off" spellcheck="false">
+      </label>
+      <label>Catégorie
+        <input name="categorie" list="liste-categories" placeholder="Linux, Git, Python…" autocapitalize="words">
+        <datalist id="liste-categories"></datalist>
+      </label>
+      <label>Notes
+        <textarea name="notes" rows="3" placeholder="Pièges, options utiles, à quoi ça m'a servi…"></textarea>
+      </label>
+      <div class="boutons-form">
+        <button type="button" id="btn-supprimer" class="btn btn-danger" hidden>Supprimer</button>
+        <span class="espace"></span>
+        <button type="button" id="btn-annuler" class="btn btn-clair">Annuler</button>
+        <button type="submit" class="btn">Enregistrer</button>
+      </div>
+    </form>
+  </dialog>
+
+  <input id="fichier-import" type="file" accept="application/json,.json" hidden>
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
