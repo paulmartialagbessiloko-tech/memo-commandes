@@ -143,6 +143,11 @@
           <label class="radio"><input type="radio" name="sens" value="cmd"> <span>On me donne la <b>commande</b> → je trouve le <b>rôle</b></span></label>
           <label class="radio"><input type="radio" name="sens" value="mixte"> <span>Mélangé</span></label>
         </fieldset>
+        <fieldset class="choix" id="choix-mode-reponse">
+          <legend>Pour « À quoi sert… ? »</legend>
+          <label class="radio"><input type="radio" name="reponse" value="qcm" checked> <span><b>Choix multiples</b> : je choisis le bon rôle parmi 4 (corrigé automatiquement)</span></label>
+          <label class="radio"><input type="radio" name="reponse" value="libre"> <span><b>Réponse libre</b> : j'écris avec mes mots, puis je compare</span></label>
+        </fieldset>
         <fieldset class="choix choix-ligne">
           <legend>Nombre de questions</legend>
           <label class="radio"><input type="radio" name="nombre" value="10" checked> <span>10</span></label>
@@ -171,20 +176,29 @@
         </div>
       </div>
       <form id="form-reponse" class="quiz-form">
-        <input id="quiz-saisie" name="saisie" placeholder="Tape ta réponse (facultatif)" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+        <textarea id="quiz-saisie" name="saisie" rows="1" placeholder="Tape ta réponse (facultatif)" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>
         <button type="submit" class="btn btn-grand" id="btn-verifier">Voir la réponse</button>
       </form>
+      <div id="quiz-choix" class="quiz-choix" hidden></div>
       <div id="quiz-solution" class="quiz-solution" hidden>
         <p id="quiz-verdict" class="verdict"></p>
-        <p class="sol-label">Réponse :</p>
-        <p id="quiz-reponse" class="sol-texte"></p>
+        <div id="quiz-comparaison" class="comparaison" hidden>
+          <div><p class="sol-label">Ta réponse</p><p id="cmp-toi" class="cmp-texte"></p></div>
+          <div><p class="sol-label">Réponse notée</p><p id="cmp-note" class="cmp-texte"></p></div>
+        </div>
+        <div id="quiz-bloc-reponse">
+          <p class="sol-label">Réponse :</p>
+          <p id="quiz-reponse" class="sol-texte"></p>
+        </div>
         <p id="quiz-detail" class="sol-detail"></p>
+        <p id="quiz-question-juge" class="aide centre" hidden>Même idée, même avec d'autres mots ? Alors c'est juste.</p>
         <div id="quiz-auto" class="quiz-boutons">
           <button class="btn btn-grand" data-note="1">Suivant →</button>
         </div>
-        <div id="quiz-manuel" class="quiz-boutons">
-          <button class="btn btn-grand btn-rate" data-note="0">❌ À revoir</button>
-          <button class="btn btn-grand btn-ok" data-note="1">✅ Je savais</button>
+        <div id="quiz-manuel" class="quiz-boutons trois">
+          <button class="btn btn-grand btn-rate" data-note="0">❌ Faux</button>
+          <button class="btn btn-grand btn-presque" data-note="0.5">🟡 Presque</button>
+          <button class="btn btn-grand btn-ok" data-note="1">✅ Juste</button>
         </div>
       </div>
     </section>

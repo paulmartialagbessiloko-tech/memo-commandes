@@ -386,8 +386,10 @@ function preparerImpression(liste, cols, grouper) {
 // Niveau 1 à 5 ; délai avant de revoir la carte, en jours.
 const DELAIS = { 1: 0, 2: 1, 3: 3, 4: 7, 5: 14 };
 const JOUR = 24 * 3600 * 1000;
+const NB_CHOIX = 4;
 const fenetreQuiz = $("#fenetre-quiz");
-let quiz = null; // { cartes: [{ e, sens }], i, bonnes, rates: [] }
+// quiz = { sens, mode, cartes: [{ e, sens, choix? }], i, bonnes, presque, rates: [] }
+let quiz = null;
 
 const aReviser = (e) => !e.quiz || e.quiz.prochaine <= Date.now();
 const niveau = (e) => e.quiz?.boite || 0;
@@ -413,6 +415,7 @@ function ouvrirQuiz() {
   sel.value = [...sel.options].some((o) => o.value === avant) ? avant
     : (filtreCategorie !== "Toutes" ? filtreCategorie : "Toutes");
   majStatsQuiz();
+  majChoixMode();
   vueQuiz("config");
   if (!fenetreQuiz.open) fenetreQuiz.showModal();
 }
@@ -427,7 +430,12 @@ function majStatsQuiz() {
   $("#st-due").textContent = p.filter(aReviser).length;
   $("#st-maitrise").textContent = p.filter((e) => niveau(e) >= 4).length;
 }
+// Le choix QCM / libre ne concerne que les questions « À quoi sert… ? »
+function majChoixMode() {
+  $("#choix-mode-reponse").hidden = $("#form-quiz").elements.sens.value === "role";
+}
 $("#quiz-categorie").addEventListener("change", majStatsQuiz);
+$("#form-quiz").addEventListener("change", (ev) => { if (ev.target.name === "sens") majChoixMode(); });
 
 $("#form-quiz").addEventListener("submit", (ev) => {
   ev.preventDefault();
@@ -438,25 +446,49 @@ $("#form-quiz").addEventListener("submit", (ev) => {
   const dues = melanger(pool.filter(aReviser)).sort((a, b) => niveau(a) - niveau(b));
   const autres = pool.filter((e) => !aReviser(e)).sort((a, b) => a.quiz.prochaine - b.quiz.prochaine);
   const n = Number(f.nombre.value) || pool.length;
-  const choisies = melanger([...dues, ...autres].slice(0, n));
-  demarrer(choisies, f.sens.value);
+  demarrer(melanger([...dues, ...autres].slice(0, n)), f.sens.value, f.reponse.value);
 });
 
-function demarrer(liste, sens) {
-  quiz = {
-    sens,
-    cartes: liste.map((e) => ({ e, sens: sens === "mixte" ? (Math.random() < 0.5 ? "role" : "cmd") : sens })),
-    i: 0, bonnes: 0, rates: [],
+// 3 mauvais rôles pour le QCM : de préférence de la même catégorie (plus difficile), tous différents
+function choixQcm(e) {
+  const vus = new Set([normaliser(e.role)]);
+  const pioche = (liste) => {
+    const res = [];
+    for (const x of melanger([...liste])) {
+      const k = normaliser(x.role);
+      if (!vus.has(k)) { vus.add(k); res.push(x.role); }
+    }
+    return res;
   };
+  const cat = e.categorie || "Autre";
+  const memeCat = pioche(entrees.filter((x) => x !== e && (x.categorie || "Autre") === cat));
+  const autres = pioche(entrees.filter((x) => x !== e && (x.categorie || "Autre") !== cat));
+  const faux = [...memeCat, ...autres].slice(0, NB_CHOIX - 1);
+  if (faux.length < NB_CHOIX - 1) return null; // pas assez d'entrées : réponse libre
+  return melanger([e.role, ...faux]);
+}
+
+function demarrer(liste, sens, mode) {
+  quiz = {
+    sens, mode,
+    cartes: liste.map((e) => {
+      const s = sens === "mixte" ? (Math.random() < 0.5 ? "role" : "cmd") : sens;
+      return { e, sens: s, choix: s === "cmd" && mode === "qcm" ? choixQcm(e) : null };
+    }),
+    i: 0, bonnes: 0, presque: 0, rates: [],
+  };
+  if (mode === "qcm" && quiz.cartes.some((c) => c.sens === "cmd" && !c.choix)) {
+    toast(`Il faut au moins ${NB_CHOIX} rôles différents pour le QCM : réponse libre utilisée`);
+  }
   vueQuiz("question");
   afficherQuestion();
 }
 
 function afficherQuestion() {
-  const { e, sens } = quiz.cartes[quiz.i];
+  const { e, sens, choix } = quiz.cartes[quiz.i];
   const total = quiz.cartes.length;
   $("#quiz-progression").textContent = `Question ${quiz.i + 1} / ${total}`;
-  $("#quiz-score").textContent = `✅ ${quiz.bonnes}`;
+  $("#quiz-score").textContent = `✅ ${quiz.bonnes}` + (quiz.presque ? `  🟡 ${quiz.presque}` : "");
   $("#quiz-barre").style.width = `${(quiz.i / total) * 100}%`;
   $("#quiz-consigne").textContent = sens === "role" ? "Quelle commande pour :" : "À quoi sert :";
   const enonce = $("#quiz-enonce");
@@ -465,18 +497,32 @@ function afficherQuestion() {
   $("#quiz-cat").textContent = e.categorie || "Autre";
   $("#quiz-biblio").hidden = !e.biblio;
   $("#quiz-biblio").textContent = e.biblio ? "📦 " + e.biblio : "";
+  $("#quiz-solution").hidden = true;
+
+  // QCM
+  const zoneChoix = $("#quiz-choix");
+  zoneChoix.classList.remove("fige");
+  zoneChoix.hidden = !choix;
+  zoneChoix.innerHTML = choix ? choix.map((r, k) =>
+    `<button class="choix-btn" data-choix="${k}"><span class="lettre">${"ABCD"[k]}</span><span>${echapper(r)}</span></button>`).join("") : "";
+
+  // Réponse tapée (rôle → commande, ou réponse libre)
+  $("#form-reponse").hidden = !!choix;
   const saisie = $("#quiz-saisie");
   saisie.value = "";
+  saisie.rows = sens === "role" ? 1 : 2;
   saisie.className = sens === "role" ? "mono" : "";
-  saisie.placeholder = sens === "role" ? "Tape la commande (facultatif)" : "Dis-le dans ta tête… ou tape-le";
-  $("#form-reponse").hidden = false;
-  $("#quiz-solution").hidden = true;
+  saisie.placeholder = sens === "role" ? "Tape la commande (facultatif)" : "Explique avec tes mots (facultatif)";
   $("#btn-verifier").textContent = "Voir la réponse";
   // Sur ordinateur, curseur directement dans la case ; sur téléphone, on évite d'ouvrir le clavier d'office
-  if (matchMedia("(pointer: fine)").matches) saisie.focus();
+  if (!choix && matchMedia("(pointer: fine)").matches) saisie.focus();
 }
 $("#quiz-saisie").addEventListener("input", (ev) => {
   $("#btn-verifier").textContent = ev.target.value.trim() ? "Vérifier" : "Voir la réponse";
+});
+// Entrée = valider (Maj + Entrée pour aller à la ligne)
+$("#quiz-saisie").addEventListener("keydown", (ev) => {
+  if (ev.key === "Enter" && !ev.shiftKey) { ev.preventDefault(); $("#form-reponse").requestSubmit(); }
 });
 
 // Comparaison tolérante : casse, espaces multiples ; « head / tail » accepte « head » ou « tail »
@@ -490,71 +536,124 @@ function bonneCommande(saisie, cmd) {
   return variantes.includes(s) || variantes.some((v) => v.replace(/ /g, "") === s.replace(/ /g, ""));
 }
 
-$("#form-reponse").addEventListener("submit", (ev) => {
-  ev.preventDefault();
+// Affiche la zone « solution ». note : 1 / 0 = corrigé automatiquement ; null = l'utilisateur juge.
+function montrerSolution({ verdict, classe, note, saisie }) {
   const { e, sens } = quiz.cartes[quiz.i];
-  const saisie = $("#quiz-saisie").value;
-  const auto = sens === "role" && bonneCommande(saisie, e.cmd);
-
   $("#form-reponse").hidden = true;
   $("#quiz-solution").hidden = false;
-  const rep = $("#quiz-reponse");
-  rep.className = "sol-texte" + (sens === "role" ? " mono" : "");
-  rep.textContent = sens === "role" ? e.cmd : e.role;
+
+  const v = $("#quiz-verdict");
+  v.textContent = verdict;
+  v.className = "verdict " + (classe || "");
+
+  // Réponse libre écrite : les deux réponses côte à côte
+  const comparer = sens === "cmd" && note === null && !!saisie;
+  $("#quiz-comparaison").hidden = !comparer;
+  $("#quiz-bloc-reponse").hidden = comparer || (sens === "cmd" && !!quiz.cartes[quiz.i].choix);
+  if (comparer) {
+    $("#cmp-toi").textContent = saisie;
+    $("#cmp-note").textContent = e.role;
+  } else {
+    const rep = $("#quiz-reponse");
+    rep.className = "sol-texte" + (sens === "role" ? " mono" : "");
+    rep.textContent = sens === "role" ? e.cmd : e.role;
+  }
+
   const details = [];
-  if (sens === "cmd" && saisie.trim()) details.push(`Ta réponse : « ${echapper(saisie.trim())} »`);
+  if (sens === "cmd" && quiz.cartes[quiz.i].choix) details.push(`Bonne réponse : <b>${echapper(e.role)}</b>`);
   if (e.exemple) details.push(`Exemple : <code>${echapper(e.exemple)}</code>`);
   if (e.notes) details.push(`📝 ${echapper(e.notes)}`);
   $("#quiz-detail").innerHTML = details.join("<br>");
 
-  const verdict = $("#quiz-verdict");
-  if (auto) { verdict.textContent = "✅ Correct !"; verdict.className = "verdict ok"; }
-  else if (sens === "role" && saisie.trim()) { verdict.textContent = `❌ Tu as écrit : ${saisie.trim()}`; verdict.className = "verdict rate"; }
-  else { verdict.textContent = "Tu savais ?"; verdict.className = "verdict"; }
+  const auto = note !== null;
   $("#quiz-auto").hidden = !auto;
   $("#quiz-manuel").hidden = auto;
-  ($(auto ? "#quiz-auto .btn" : "#quiz-manuel .btn-ok")).focus({ preventScroll: true });
+  $("#quiz-question-juge").hidden = !(sens === "cmd" && !auto);
+  if (auto) {
+    const b = $("#quiz-auto .btn");
+    b.dataset.note = String(note);
+    b.focus({ preventScroll: true });
+  } else {
+    $("#quiz-manuel .btn-ok").focus({ preventScroll: true });
+  }
+}
+
+$("#form-reponse").addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  const { e, sens } = quiz.cartes[quiz.i];
+  const saisie = $("#quiz-saisie").value.trim();
+  if (sens === "role" && bonneCommande(saisie, e.cmd)) {
+    montrerSolution({ verdict: "✅ Correct !", classe: "ok", note: 1 });
+  } else if (sens === "role" && saisie) {
+    montrerSolution({ verdict: `❌ Tu as écrit : ${saisie}`, classe: "rate", note: null });
+  } else if (sens === "cmd" && saisie) {
+    montrerSolution({ verdict: "Compare les deux réponses", note: null, saisie });
+  } else {
+    montrerSolution({ verdict: "Tu savais ?", note: null });
+  }
+});
+
+// Clic sur un choix du QCM : correction immédiate
+$("#quiz-choix").addEventListener("click", (ev) => {
+  const b = ev.target.closest("[data-choix]");
+  if (!b || $("#quiz-choix").classList.contains("fige")) return;
+  const { e, choix } = quiz.cartes[quiz.i];
+  const bonIndex = choix.indexOf(e.role);
+  const ok = Number(b.dataset.choix) === bonIndex;
+  $("#quiz-choix").classList.add("fige");
+  $("#quiz-choix").querySelectorAll(".choix-btn").forEach((x, k) => {
+    x.disabled = true;
+    if (k === bonIndex) x.classList.add("bon");
+    else if (x === b) x.classList.add("mauvais");
+  });
+  montrerSolution(ok
+    ? { verdict: "✅ Correct !", classe: "ok", note: 1 }
+    : { verdict: "❌ Raté", classe: "rate", note: 0 });
 });
 
 $("#quiz-solution").addEventListener("click", (ev) => {
   const b = ev.target.closest("[data-note]");
   if (!b || !quiz) return;
   const carte = quiz.cartes[quiz.i];
-  const ok = b.dataset.note === "1";
-  noter(carte.e, ok);
-  if (ok) quiz.bonnes++; else quiz.rates.push(carte);
+  const note = Number(b.dataset.note);
+  noter(carte.e, note);
+  if (note === 1) quiz.bonnes++;
+  else { if (note === 0.5) quiz.presque++; quiz.rates.push({ ...carte, note }); }
   quiz.i++;
+  $("#quiz-choix").classList.remove("fige");
   if (quiz.i < quiz.cartes.length) afficherQuestion(); else finQuiz();
 });
 
-function noter(e, ok) {
+// note : 1 = juste (niveau +1), 0.5 = presque (on garde le niveau mais on revoit plus tôt), 0 = faux (niveau 1)
+function noter(e, note) {
   const q = e.quiz || { boite: 1, vus: 0, reussis: 0 };
   q.vus++;
-  if (ok) { q.reussis++; q.boite = Math.min(5, q.boite + 1); }
-  else q.boite = 1;
-  q.prochaine = Date.now() + DELAIS[q.boite] * JOUR;
+  if (note === 1) { q.reussis++; q.boite = Math.min(5, q.boite + 1); q.prochaine = Date.now() + DELAIS[q.boite] * JOUR; }
+  else if (note === 0.5) { q.prochaine = Date.now() + DELAIS[Math.max(1, q.boite - 1)] * JOUR; }
+  else { q.boite = 1; q.prochaine = Date.now(); }
   e.quiz = q;
   sauver();
 }
 
 function finQuiz() {
   const total = quiz.cartes.length;
-  const pct = Math.round((quiz.bonnes / total) * 100);
-  $("#quiz-resultat").innerHTML = `<b>${quiz.bonnes} / ${total}</b><span>${pct} %</span>`;
+  const pct = Math.round(((quiz.bonnes + quiz.presque / 2) / total) * 100);
+  $("#quiz-resultat").innerHTML = `<b>${quiz.bonnes} / ${total}</b><span>${
+    quiz.presque ? `+ ${quiz.presque} presque · ` : ""}${pct} %</span>`;
   $("#quiz-message").textContent =
     pct === 100 ? "Parfait ! 🎉 Ces commandes reviendront dans quelques jours pour bien les ancrer." :
     pct >= 70 ? "Très bien ! Les ratées reviendront en priorité au prochain quiz." :
     "Continue : c'est en se trompant qu'on retient. Refais les ratées maintenant.";
   $("#quiz-rates").innerHTML = quiz.rates.length
-    ? `<p class="sol-label">À revoir :</p><ul class="liste-rates">${quiz.rates.map(({ e }) =>
-        `<li><code class="cmd">${echapper(e.cmd)}</code> <span>${echapper(e.role)}</span></li>`).join("")}</ul>`
+    ? `<p class="sol-label">À revoir :</p><ul class="liste-rates">${quiz.rates.map(({ e, note }) =>
+        `<li><span class="ligne-rate">${note === 0.5 ? "🟡" : "❌"} <code class="cmd">${echapper(e.cmd)}</code></span><span>${echapper(e.role)}</span></li>`).join("")}</ul>`
     : "";
   $("#btn-refaire-rates").hidden = !quiz.rates.length;
   vueQuiz("fin");
   afficher();
 }
 
-$("#btn-refaire-rates").onclick = () => demarrer(melanger(quiz.rates.map((c) => c.e)), quiz.sens);
+$("#btn-refaire-rates").onclick = () => demarrer(melanger(quiz.rates.map((c) => c.e)), quiz.sens, quiz.mode);
 $("#btn-nouveau-quiz").onclick = ouvrirQuiz;
 $("#btn-quiz").onclick = ouvrirQuiz;
 fenetreQuiz.addEventListener("click", (ev) => {

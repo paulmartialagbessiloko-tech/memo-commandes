@@ -177,7 +177,7 @@ dialog label.radio {
   flex-direction: row; align-items: center; gap: 10px;
   font-size: 1rem; font-weight: 400; color: var(--texte); padding: 6px 0; cursor: pointer;
 }
-dialog label.radio input { width: 20px; height: 20px; accent-color: var(--accent); margin: 0; }
+dialog label.radio input { width: 20px; height: 20px; accent-color: var(--accent); margin: 0; flex: none; }
 dialog label.radio b { color: var(--doux); font-weight: 500; }
 .aide { font-size: .85rem; color: var(--doux); margin: 0; }
 
@@ -279,3 +279,30 @@ button.etiquette.lien:hover { filter: brightness(.92); text-decoration: underlin
   #impression .p-num { width: 1%; color: #777; text-align: right; white-space: nowrap; }
   #impression code { font-family: Consolas, "Courier New", monospace; font-size: 9pt; font-weight: 600; word-break: break-word; }
 }
+
+/* ---------- Quiz : QCM, comparaison, « presque » ---------- */
+.quiz-choix { display: flex; flex-direction: column; gap: 8px; }
+.choix-btn {
+  display: flex; align-items: center; gap: 12px; text-align: left; width: 100%;
+  font: inherit; font-size: 1rem; color: var(--texte); cursor: pointer;
+  background: var(--carte); border: 2px solid var(--bord); border-radius: 12px; padding: 12px 14px;
+}
+.choix-btn:hover:not(:disabled) { border-color: var(--accent); }
+.choix-btn .lettre {
+  flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--code-fond); font-weight: 700; font-size: .85rem;
+}
+.choix-btn:disabled { cursor: default; opacity: .55; }
+.choix-btn.bon { border-color: #16a085; background: color-mix(in srgb, #16a085 14%, var(--carte)); opacity: 1; }
+.choix-btn.bon .lettre { background: #16a085; color: #fff; }
+.choix-btn.mauvais { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, var(--carte)); opacity: 1; }
+.choix-btn.mauvais .lettre { background: var(--danger); color: #fff; }
+#quiz-saisie { resize: none; }
+.comparaison { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.comparaison > div { background: var(--fond); border: 1px solid var(--bord); border-radius: 12px; padding: 10px 12px; }
+.comparaison > div:last-child { border-color: var(--accent); }
+.cmp-texte { margin: 4px 0 0; font-size: 1rem; font-weight: 500; word-break: break-word; }
+.quiz-boutons.trois .btn { padding-left: 6px; padding-right: 6px; }
+.btn-presque { background: color-mix(in srgb, #f0a020 22%, var(--carte)); color: var(--texte); }
+.ligne-rate { display: flex; align-items: center; gap: 6px; }
+@media (max-width: 420px) { .comparaison { grid-template-columns: 1fr; } }
