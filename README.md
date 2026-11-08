@@ -12,6 +12,8 @@ Un petit carnet pour noter les commandes (Linux, Git, Python, Arduino/ESP32…) 
 - Thème clair / sombre
 - Export / import d'une sauvegarde (fichier JSON)
 - **Export PDF** : un tableau quadrillé (commande, rôle, exemple, catégorie, notes), regroupé par catégorie si on le souhaite. Menu ⋮ → Exporter en PDF, puis choisir « Enregistrer en PDF » comme imprimante.
+- **Quiz** 🎯 avec répétition espacée (méthode Leitner, 5 niveaux) : rôle → commande, commande → rôle, ou mélangé ; réponse tapée vérifiée automatiquement, ou auto-évaluation
+- **Bibliothèques** : catégorie « Bibliothèques » + champ facultatif « appartient à la bibliothèque » pour les fonctions (📦 numpy). Un clic sur l'étiquette affiche tout ce qui concerne cette bibliothèque.
 - Ajouter / retirer d'un coup les commandes du guide Linux (les commandes du guide que tu as modifiées sont conservées)
 
 ## Installer sur le téléphone

@@ -47,6 +47,18 @@ function toast(msg) {
   clearTimeout(toast.timer);
   toast.timer = setTimeout(() => (t.hidden = true), 2200);
 }
+const estBiblio = (e) => normaliser(e.categorie) === "bibliotheques";
+// Suggestions : les bibliothèques déjà notées (catégorie « Bibliothèques » ou champ biblio) + celles du projet
+function bibliotheques() {
+  const projet = ["numpy", "cv2", "mediapipe", "sklearn", "keras", "tensorflow", "joblib", "pyserial", "pygame", "vosk", "piper", "ESP32Encoder"];
+  const notees = entrees.flatMap((e) => [estBiblio(e) ? e.cmd : "", e.biblio || ""]).filter(Boolean);
+  const vues = new Map();
+  for (const b of [...notees, ...projet]) if (!vues.has(normaliser(b))) vues.set(normaliser(b), b);
+  return [...vues.values()].sort((a, b) => a.localeCompare(b, "fr"));
+}
+// Nombre de fonctions rattachées à une bibliothèque
+const nbFonctions = (nom) => entrees.filter((e) => e.biblio && normaliser(e.biblio) === normaliser(nom)).length;
+
 function categories() {
   return [...new Set(entrees.map((e) => e.categorie || "Autre"))].sort((a, b) => a.localeCompare(b, "fr"));
 }
@@ -62,7 +74,7 @@ function listeAffichee() {
   const tri = $("#tri").value;
   const liste = entrees.filter((e) =>
     (filtreCategorie === "Toutes" || (e.categorie || "Autre") === filtreCategorie) &&
-    (!nq || normaliser([e.cmd, e.role, e.exemple, e.categorie, e.notes].join(" ")).includes(nq)));
+    (!nq || normaliser([e.cmd, e.role, e.exemple, e.categorie, e.biblio, e.notes].join(" ")).includes(nq)));
   if (tri === "alpha") liste.sort((a, b) => a.cmd.localeCompare(b.cmd, "fr"));
   else if (tri === "categorie") liste.sort(parCategorie);
   else liste.sort((a, b) => b.cree - a.cree);
@@ -79,14 +91,17 @@ function afficher() {
     const nb = c === "Toutes" ? entrees.length : entrees.filter((e) => (e.categorie || "Autre") === c).length;
     return `<button class="puce ${c === filtreCategorie ? "active" : ""}" data-cat="${echapper(c)}">${echapper(c)} · ${nb}</button>`;
   }).join("");
-  $("#liste-categories").innerHTML = [...new Set(["Linux", "Git", "Python", "Arduino / ESP32", "Fonctions", ...cats])]
+  $("#liste-categories").innerHTML = [...new Set(["Linux", "Git", "Python", "Arduino / ESP32", "Fonctions", "Bibliothèques", ...cats])]
     .map((c) => `<option value="${echapper(c)}">`).join("");
+  $("#liste-biblios").innerHTML = bibliotheques().map((b) => `<option value="${echapper(b)}">`).join("");
 
   const liste = listeAffichee();
 
   lignes.innerHTML = liste.map((e) => `
     <tr data-id="${e.id}">
-      <td class="c-cmd"><code class="cmd">${surligner(e.cmd, q)}</code></td>
+      <td class="c-cmd"><code class="cmd">${surligner(e.cmd, q)}</code>${
+        e.biblio ? `<button class="etiquette biblio lien" data-chercher="${echapper(e.biblio)}" title="Voir tout ${echapper(e.biblio)}">📦 ${surligner(e.biblio, q)}</button>` : ""}${
+        estBiblio(e) && nbFonctions(e.cmd) ? `<button class="etiquette lien" data-chercher="${echapper(e.cmd)}" title="Voir ses fonctions">🔗 ${nbFonctions(e.cmd)} fonction(s)</button>` : ""}</td>
       <td class="c-role">${surligner(e.role, q)}${e.notes ? `<div class="notes">${surligner(e.notes, q)}</div>` : ""}</td>
       <td class="c-ex">${e.exemple ? `<code class="exemple">${surligner(e.exemple, q)}</code>` : ""}</td>
       <td class="c-cat"><span class="etiquette">${echapper(e.categorie || "Autre")}</span></td>
@@ -106,7 +121,7 @@ function ouvrir(id = null) {
   const e = entrees.find((x) => x.id === id);
   $("#fenetre-titre").textContent = e ? "Modifier" : "Nouvelle commande";
   $("#btn-supprimer").hidden = !e;
-  if (e) for (const k of ["cmd", "role", "exemple", "categorie", "notes"]) form.elements[k].value = e[k] || "";
+  if (e) for (const k of ["cmd", "role", "exemple", "categorie", "biblio", "notes"]) form.elements[k].value = e[k] || "";
   else if (filtreCategorie !== "Toutes") form.elements.categorie.value = filtreCategorie;
   fenetre.showModal();
   if (!e) form.elements.cmd.focus();
@@ -139,6 +154,14 @@ fenetre.addEventListener("click", (ev) => { if (ev.target === fenetre) fenetre.c
 
 /* ---------- Événements de la liste ---------- */
 lignes.addEventListener("click", async (ev) => {
+  const lien = ev.target.closest("[data-chercher]");
+  if (lien) { // clic sur 📦 numpy → affiche tout ce qui concerne numpy
+    $("#recherche").value = lien.dataset.chercher;
+    filtreCategorie = "Toutes";
+    afficher();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    return;
+  }
   const btn = ev.target.closest("[data-copier]");
   if (btn) {
     const e = entrees.find((x) => x.id === btn.dataset.copier);
@@ -203,7 +226,7 @@ $("#fichier-import").addEventListener("change", async (ev) => {
       if (cles.has(cle)) continue;
       cles.add(cle);
       entrees.push({ id: nouvelId(), cree: e.cree || Date.now(), cmd: e.cmd, role: e.role,
-        exemple: e.exemple || "", categorie: e.categorie || "Autre", notes: e.notes || "" });
+        exemple: e.exemple || "", categorie: e.categorie || "Autre", biblio: e.biblio || "", notes: e.notes || "" });
       n++;
     }
     sauver(); afficher();
@@ -327,9 +350,9 @@ formPdf.addEventListener("submit", (ev) => {
 });
 
 function preparerImpression(liste, cols, grouper) {
-  const titres = { exemple: "Exemple", categorie: "Catégorie", notes: "Notes" };
-  // La colonne Catégorie est inutile si on regroupe déjà par catégorie
-  const colsTableau = cols.filter((c) => !(grouper && c === "categorie"));
+  const titres = { exemple: "Exemple", biblio: "Bibliothèque", categorie: "Catégorie", notes: "Notes" };
+  // Colonne Catégorie inutile si on regroupe déjà par catégorie ; colonne Bibliothèque inutile si personne n'en a
+  const colsTableau = cols.filter((c) => !(grouper && c === "categorie") && !(c === "biblio" && !liste.some((e) => e.biblio)));
   const entete = `<tr><th class="p-num">#</th><th>Commande / fonction</th><th>Rôle</th>${
     colsTableau.map((c) => `<th>${titres[c]}</th>`).join("")}</tr>`;
   let num = 0;
@@ -358,6 +381,188 @@ function preparerImpression(liste, cols, grouper) {
   document.title = `memo-commandes-${new Date().toISOString().slice(0, 10)}`; // nom proposé pour le PDF
   window.addEventListener("afterprint", () => { document.title = ancienTitre; }, { once: true });
 }
+
+/* ---------- Quiz (répétition espacée, méthode Leitner) ---------- */
+// Niveau 1 à 5 ; délai avant de revoir la carte, en jours.
+const DELAIS = { 1: 0, 2: 1, 3: 3, 4: 7, 5: 14 };
+const JOUR = 24 * 3600 * 1000;
+const fenetreQuiz = $("#fenetre-quiz");
+let quiz = null; // { cartes: [{ e, sens }], i, bonnes, rates: [] }
+
+const aReviser = (e) => !e.quiz || e.quiz.prochaine <= Date.now();
+const niveau = (e) => e.quiz?.boite || 0;
+
+function melanger(t) {
+  for (let i = t.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [t[i], t[j]] = [t[j], t[i]];
+  }
+  return t;
+}
+
+function vueQuiz(nom) {
+  for (const v of ["config", "question", "fin"]) $("#quiz-" + v).hidden = v !== nom;
+}
+
+function ouvrirQuiz() {
+  if (!entrees.length) return toast("Ajoute d'abord des commandes à ton mémo");
+  const sel = $("#quiz-categorie");
+  const avant = sel.value;
+  sel.innerHTML = `<option value="Toutes">Toutes (${entrees.length})</option>` + categories().map((c) =>
+    `<option value="${echapper(c)}">${echapper(c)} (${entrees.filter((e) => (e.categorie || "Autre") === c).length})</option>`).join("");
+  sel.value = [...sel.options].some((o) => o.value === avant) ? avant
+    : (filtreCategorie !== "Toutes" ? filtreCategorie : "Toutes");
+  majStatsQuiz();
+  vueQuiz("config");
+  if (!fenetreQuiz.open) fenetreQuiz.showModal();
+}
+
+function poolQuiz() {
+  const c = $("#quiz-categorie").value;
+  return entrees.filter((e) => c === "Toutes" || (e.categorie || "Autre") === c);
+}
+function majStatsQuiz() {
+  const p = poolQuiz();
+  $("#st-total").textContent = p.length;
+  $("#st-due").textContent = p.filter(aReviser).length;
+  $("#st-maitrise").textContent = p.filter((e) => niveau(e) >= 4).length;
+}
+$("#quiz-categorie").addEventListener("change", majStatsQuiz);
+
+$("#form-quiz").addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  const f = ev.target.elements;
+  const pool = poolQuiz();
+  if (!pool.length) return toast("Aucune commande dans cette catégorie");
+  // D'abord les cartes à réviser (les plus faibles en premier), puis les autres (les plus anciennes en premier)
+  const dues = melanger(pool.filter(aReviser)).sort((a, b) => niveau(a) - niveau(b));
+  const autres = pool.filter((e) => !aReviser(e)).sort((a, b) => a.quiz.prochaine - b.quiz.prochaine);
+  const n = Number(f.nombre.value) || pool.length;
+  const choisies = melanger([...dues, ...autres].slice(0, n));
+  demarrer(choisies, f.sens.value);
+});
+
+function demarrer(liste, sens) {
+  quiz = {
+    sens,
+    cartes: liste.map((e) => ({ e, sens: sens === "mixte" ? (Math.random() < 0.5 ? "role" : "cmd") : sens })),
+    i: 0, bonnes: 0, rates: [],
+  };
+  vueQuiz("question");
+  afficherQuestion();
+}
+
+function afficherQuestion() {
+  const { e, sens } = quiz.cartes[quiz.i];
+  const total = quiz.cartes.length;
+  $("#quiz-progression").textContent = `Question ${quiz.i + 1} / ${total}`;
+  $("#quiz-score").textContent = `✅ ${quiz.bonnes}`;
+  $("#quiz-barre").style.width = `${(quiz.i / total) * 100}%`;
+  $("#quiz-consigne").textContent = sens === "role" ? "Quelle commande pour :" : "À quoi sert :";
+  const enonce = $("#quiz-enonce");
+  enonce.className = "enonce" + (sens === "cmd" ? " mono" : "");
+  enonce.textContent = sens === "role" ? e.role : e.cmd;
+  $("#quiz-cat").textContent = e.categorie || "Autre";
+  $("#quiz-biblio").hidden = !e.biblio;
+  $("#quiz-biblio").textContent = e.biblio ? "📦 " + e.biblio : "";
+  const saisie = $("#quiz-saisie");
+  saisie.value = "";
+  saisie.className = sens === "role" ? "mono" : "";
+  saisie.placeholder = sens === "role" ? "Tape la commande (facultatif)" : "Dis-le dans ta tête… ou tape-le";
+  $("#form-reponse").hidden = false;
+  $("#quiz-solution").hidden = true;
+  $("#btn-verifier").textContent = "Voir la réponse";
+  // Sur ordinateur, curseur directement dans la case ; sur téléphone, on évite d'ouvrir le clavier d'office
+  if (matchMedia("(pointer: fine)").matches) saisie.focus();
+}
+$("#quiz-saisie").addEventListener("input", (ev) => {
+  $("#btn-verifier").textContent = ev.target.value.trim() ? "Vérifier" : "Voir la réponse";
+});
+
+// Comparaison tolérante : casse, espaces multiples ; « head / tail » accepte « head » ou « tail »
+function compacter(t) { return normaliser(t).replace(/\s+/g, " ").trim(); }
+function bonneCommande(saisie, cmd) {
+  const s = compacter(saisie);
+  if (!s) return false;
+  const bases = [cmd, ...cmd.split(" / ")];
+  // Pour une fonction, le nom sans les arguments suffit : np.linalg.norm == np.linalg.norm(v)
+  const variantes = [...bases, ...bases.map((b) => b.replace(/\(.*\)\s*$/, ""))].map(compacter);
+  return variantes.includes(s) || variantes.some((v) => v.replace(/ /g, "") === s.replace(/ /g, ""));
+}
+
+$("#form-reponse").addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  const { e, sens } = quiz.cartes[quiz.i];
+  const saisie = $("#quiz-saisie").value;
+  const auto = sens === "role" && bonneCommande(saisie, e.cmd);
+
+  $("#form-reponse").hidden = true;
+  $("#quiz-solution").hidden = false;
+  const rep = $("#quiz-reponse");
+  rep.className = "sol-texte" + (sens === "role" ? " mono" : "");
+  rep.textContent = sens === "role" ? e.cmd : e.role;
+  const details = [];
+  if (sens === "cmd" && saisie.trim()) details.push(`Ta réponse : « ${echapper(saisie.trim())} »`);
+  if (e.exemple) details.push(`Exemple : <code>${echapper(e.exemple)}</code>`);
+  if (e.notes) details.push(`📝 ${echapper(e.notes)}`);
+  $("#quiz-detail").innerHTML = details.join("<br>");
+
+  const verdict = $("#quiz-verdict");
+  if (auto) { verdict.textContent = "✅ Correct !"; verdict.className = "verdict ok"; }
+  else if (sens === "role" && saisie.trim()) { verdict.textContent = `❌ Tu as écrit : ${saisie.trim()}`; verdict.className = "verdict rate"; }
+  else { verdict.textContent = "Tu savais ?"; verdict.className = "verdict"; }
+  $("#quiz-auto").hidden = !auto;
+  $("#quiz-manuel").hidden = auto;
+  ($(auto ? "#quiz-auto .btn" : "#quiz-manuel .btn-ok")).focus({ preventScroll: true });
+});
+
+$("#quiz-solution").addEventListener("click", (ev) => {
+  const b = ev.target.closest("[data-note]");
+  if (!b || !quiz) return;
+  const carte = quiz.cartes[quiz.i];
+  const ok = b.dataset.note === "1";
+  noter(carte.e, ok);
+  if (ok) quiz.bonnes++; else quiz.rates.push(carte);
+  quiz.i++;
+  if (quiz.i < quiz.cartes.length) afficherQuestion(); else finQuiz();
+});
+
+function noter(e, ok) {
+  const q = e.quiz || { boite: 1, vus: 0, reussis: 0 };
+  q.vus++;
+  if (ok) { q.reussis++; q.boite = Math.min(5, q.boite + 1); }
+  else q.boite = 1;
+  q.prochaine = Date.now() + DELAIS[q.boite] * JOUR;
+  e.quiz = q;
+  sauver();
+}
+
+function finQuiz() {
+  const total = quiz.cartes.length;
+  const pct = Math.round((quiz.bonnes / total) * 100);
+  $("#quiz-resultat").innerHTML = `<b>${quiz.bonnes} / ${total}</b><span>${pct} %</span>`;
+  $("#quiz-message").textContent =
+    pct === 100 ? "Parfait ! 🎉 Ces commandes reviendront dans quelques jours pour bien les ancrer." :
+    pct >= 70 ? "Très bien ! Les ratées reviendront en priorité au prochain quiz." :
+    "Continue : c'est en se trompant qu'on retient. Refais les ratées maintenant.";
+  $("#quiz-rates").innerHTML = quiz.rates.length
+    ? `<p class="sol-label">À revoir :</p><ul class="liste-rates">${quiz.rates.map(({ e }) =>
+        `<li><code class="cmd">${echapper(e.cmd)}</code> <span>${echapper(e.role)}</span></li>`).join("")}</ul>`
+    : "";
+  $("#btn-refaire-rates").hidden = !quiz.rates.length;
+  vueQuiz("fin");
+  afficher();
+}
+
+$("#btn-refaire-rates").onclick = () => demarrer(melanger(quiz.rates.map((c) => c.e)), quiz.sens);
+$("#btn-nouveau-quiz").onclick = ouvrirQuiz;
+$("#btn-quiz").onclick = ouvrirQuiz;
+fenetreQuiz.addEventListener("click", (ev) => {
+  if (!ev.target.closest("[data-quitter]")) return;
+  if (!$("#quiz-question").hidden && quiz && quiz.i > 0 && !confirm("Arrêter le quiz ? Tes réponses déjà données sont enregistrées.")) return;
+  fenetreQuiz.close();
+  afficher();
+});
 
 /* ---------- Thème ---------- */
 function appliquerTheme(t) { document.documentElement.dataset.theme = t; }

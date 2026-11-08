@@ -22,6 +22,7 @@
     </div>
     <div class="actions-haut">
       <button id="btn-installer" class="btn btn-clair" hidden>📲 Installer</button>
+      <button id="btn-quiz" class="btn btn-clair">🎯 Quiz</button>
       <button id="btn-menu" class="btn btn-clair" aria-label="Menu">⋮</button>
     </div>
     <div id="menu" class="menu" hidden>
@@ -76,8 +77,12 @@
         <input name="exemple" placeholder="ex. ls -la ~/projets" autocapitalize="off" autocorrect="off" spellcheck="false">
       </label>
       <label>Catégorie
-        <input name="categorie" list="liste-categories" placeholder="Linux, Git, Python…" autocapitalize="words">
+        <input name="categorie" list="liste-categories" placeholder="Linux, Git, Python, Bibliothèques…" autocapitalize="words">
         <datalist id="liste-categories"></datalist>
+      </label>
+      <label>Appartient à la bibliothèque <span class="facultatif">(facultatif)</span>
+        <input name="biblio" list="liste-biblios" placeholder="ex. numpy, cv2, mediapipe…" autocapitalize="off" autocorrect="off" spellcheck="false">
+        <datalist id="liste-biblios"></datalist>
       </label>
       <label>Notes
         <textarea name="notes" rows="3" placeholder="Pièges, options utiles, à quoi ça m'a servi…"></textarea>
@@ -102,6 +107,7 @@
       <fieldset class="choix">
         <legend>Colonnes</legend>
         <label class="radio"><input type="checkbox" name="col" value="exemple" checked> <span>Exemple</span></label>
+        <label class="radio"><input type="checkbox" name="col" value="biblio" checked> <span>Bibliothèque</span></label>
         <label class="radio"><input type="checkbox" name="col" value="categorie" checked> <span>Catégorie</span></label>
         <label class="radio"><input type="checkbox" name="col" value="notes" checked> <span>Notes</span></label>
       </fieldset>
@@ -112,6 +118,91 @@
         <button type="submit" class="btn">📄 Créer le PDF</button>
       </div>
     </form>
+  </dialog>
+
+  <!-- Quiz (répétition espacée) -->
+  <dialog id="fenetre-quiz" class="plein">
+    <!-- 1. Réglages -->
+    <section id="quiz-config" class="quiz-vue">
+      <div class="quiz-haut">
+        <h2>🎯 Quiz</h2>
+        <button class="fermer" data-quitter aria-label="Fermer">✕</button>
+      </div>
+      <div class="quiz-stats">
+        <div><b id="st-total">0</b><span>commandes</span></div>
+        <div><b id="st-due">0</b><span>à réviser</span></div>
+        <div><b id="st-maitrise">0</b><span>maîtrisées</span></div>
+      </div>
+      <form id="form-quiz" class="quiz-form">
+        <label class="champ">Catégorie
+          <select name="categorie" id="quiz-categorie"></select>
+        </label>
+        <fieldset class="choix">
+          <legend>Question</legend>
+          <label class="radio"><input type="radio" name="sens" value="role" checked> <span>On me donne le <b>rôle</b> → je trouve la <b>commande</b></span></label>
+          <label class="radio"><input type="radio" name="sens" value="cmd"> <span>On me donne la <b>commande</b> → je trouve le <b>rôle</b></span></label>
+          <label class="radio"><input type="radio" name="sens" value="mixte"> <span>Mélangé</span></label>
+        </fieldset>
+        <fieldset class="choix choix-ligne">
+          <legend>Nombre de questions</legend>
+          <label class="radio"><input type="radio" name="nombre" value="10" checked> <span>10</span></label>
+          <label class="radio"><input type="radio" name="nombre" value="20"> <span>20</span></label>
+          <label class="radio"><input type="radio" name="nombre" value="0"> <span>Toutes</span></label>
+        </fieldset>
+        <p class="aide">Les commandes ratées et celles à réviser aujourd'hui passent en premier.</p>
+        <button type="submit" class="btn btn-grand">Commencer</button>
+      </form>
+    </section>
+
+    <!-- 2. Question -->
+    <section id="quiz-question" class="quiz-vue" hidden>
+      <div class="quiz-haut">
+        <span id="quiz-progression" class="quiz-prog"></span>
+        <span id="quiz-score" class="quiz-prog"></span>
+        <button class="fermer" data-quitter aria-label="Arrêter">✕</button>
+      </div>
+      <div class="barre-prog"><div id="quiz-barre"></div></div>
+      <div class="quiz-carte">
+        <p id="quiz-consigne" class="consigne"></p>
+        <p id="quiz-enonce" class="enonce"></p>
+        <div class="etiquettes">
+          <span id="quiz-cat" class="etiquette"></span>
+          <span id="quiz-biblio" class="etiquette biblio" hidden></span>
+        </div>
+      </div>
+      <form id="form-reponse" class="quiz-form">
+        <input id="quiz-saisie" name="saisie" placeholder="Tape ta réponse (facultatif)" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+        <button type="submit" class="btn btn-grand" id="btn-verifier">Voir la réponse</button>
+      </form>
+      <div id="quiz-solution" class="quiz-solution" hidden>
+        <p id="quiz-verdict" class="verdict"></p>
+        <p class="sol-label">Réponse :</p>
+        <p id="quiz-reponse" class="sol-texte"></p>
+        <p id="quiz-detail" class="sol-detail"></p>
+        <div id="quiz-auto" class="quiz-boutons">
+          <button class="btn btn-grand" data-note="1">Suivant →</button>
+        </div>
+        <div id="quiz-manuel" class="quiz-boutons">
+          <button class="btn btn-grand btn-rate" data-note="0">❌ À revoir</button>
+          <button class="btn btn-grand btn-ok" data-note="1">✅ Je savais</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Résultat -->
+    <section id="quiz-fin" class="quiz-vue" hidden>
+      <div class="quiz-haut">
+        <h2>Résultat</h2>
+        <button class="fermer" data-quitter aria-label="Fermer">✕</button>
+      </div>
+      <p id="quiz-resultat" class="resultat"></p>
+      <p id="quiz-message" class="aide centre"></p>
+      <div id="quiz-rates"></div>
+      <div class="quiz-boutons">
+        <button id="btn-refaire-rates" class="btn btn-grand btn-clair">🔁 Refaire les ratées</button>
+        <button id="btn-nouveau-quiz" class="btn btn-grand">Nouveau quiz</button>
+      </div>
+    </section>
   </dialog>
 
   <!-- Version imprimable (visible uniquement à l'impression / PDF) -->

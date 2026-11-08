@@ -181,6 +181,79 @@ dialog label.radio input { width: 20px; height: 20px; accent-color: var(--accent
 dialog label.radio b { color: var(--doux); font-weight: 500; }
 .aide { font-size: .85rem; color: var(--doux); margin: 0; }
 
+
+/* ---------- Quiz ---------- */
+dialog.plein { width: min(620px, 96vw); max-height: 94dvh; }
+.quiz-vue { padding: 16px 18px 20px; display: flex; flex-direction: column; gap: 14px; }
+.quiz-haut { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.quiz-haut h2 { margin: 0; font-size: 1.25rem; }
+.fermer {
+  margin-left: auto; background: var(--code-fond); color: var(--texte); border: none; cursor: pointer;
+  width: 38px; height: 38px; border-radius: 50%; font-size: 1.05rem; flex: none;
+}
+.quiz-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.quiz-stats div {
+  background: var(--fond); border: 1px solid var(--bord); border-radius: 12px;
+  padding: 10px 6px; text-align: center; display: flex; flex-direction: column;
+}
+.quiz-stats b { font-size: 1.5rem; color: var(--accent); }
+.quiz-stats span { font-size: .8rem; color: var(--doux); }
+.quiz-form { display: flex; flex-direction: column; gap: 12px; padding: 0; }
+.champ { display: flex; flex-direction: column; gap: 5px; font-size: .85rem; color: var(--doux); font-weight: 600; }
+.champ select, #quiz-saisie {
+  font: inherit; font-size: 1rem; color: var(--texte); background: var(--fond);
+  border: 1px solid var(--bord); border-radius: 10px; padding: 11px 12px; font-weight: 400;
+}
+#quiz-saisie.mono { font-family: ui-monospace, Consolas, monospace; }
+#quiz-saisie:focus { outline: 2px solid var(--accent); border-color: transparent; }
+.choix-ligne { display: flex; gap: 18px; flex-wrap: wrap; }
+.choix-ligne legend { width: 100%; }
+.btn-grand { padding: 13px 18px; font-size: 1.02rem; width: 100%; }
+.centre { text-align: center; }
+.quiz-prog { font-size: .9rem; color: var(--doux); font-weight: 600; }
+.barre-prog { height: 6px; background: var(--code-fond); border-radius: 99px; overflow: hidden; }
+.barre-prog div { height: 100%; width: 0; background: var(--accent); transition: width .3s; }
+.quiz-carte {
+  background: var(--fond); border: 1px solid var(--bord); border-radius: 16px;
+  padding: 22px 18px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px;
+}
+.consigne { margin: 0; color: var(--doux); font-size: .9rem; }
+.enonce { margin: 0; font-size: 1.35rem; font-weight: 600; line-height: 1.35; word-break: break-word; }
+.enonce.mono { font-family: ui-monospace, Consolas, monospace; background: var(--code-fond); padding: 4px 12px; border-radius: 8px; }
+.quiz-solution { display: flex; flex-direction: column; gap: 6px; }
+.verdict { margin: 0 0 4px; font-weight: 700; font-size: 1.05rem; text-align: center; }
+.verdict.ok { color: #16a085; }
+.verdict.rate { color: var(--danger); }
+.sol-label { margin: 0; font-size: .8rem; color: var(--doux); font-weight: 600; text-transform: uppercase; letter-spacing: .03em; }
+.sol-texte { margin: 0; font-size: 1.2rem; font-weight: 600; word-break: break-word; }
+.sol-texte.mono { font-family: ui-monospace, Consolas, monospace; color: var(--accent); }
+.sol-detail { margin: 0 0 6px; color: var(--doux); font-size: .92rem; line-height: 1.5; }
+.sol-detail code { background: var(--code-fond); padding: 1px 6px; border-radius: 5px; }
+.quiz-boutons { display: flex; gap: 10px; margin-top: 4px; }
+.btn-rate { background: color-mix(in srgb, var(--danger) 15%, var(--carte)); color: var(--danger); }
+.btn-ok { background: var(--accent); }
+.resultat { margin: 6px 0 0; display: flex; flex-direction: column; align-items: center; }
+.resultat b { font-size: 2.6rem; color: var(--accent); }
+.resultat span { color: var(--doux); font-size: 1.1rem; }
+.liste-rates { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.liste-rates li { display: flex; flex-direction: column; gap: 3px; align-items: flex-start; background: var(--fond); border-radius: 10px; padding: 8px 10px; }
+.liste-rates span { color: var(--doux); font-size: .9rem; }
+
+@media (max-width: 700px) {
+  dialog.plein { width: 100vw; max-width: 100vw; height: 100dvh; max-height: 100dvh; border-radius: 0; margin: 0; }
+  .quiz-vue { min-height: 100%; padding-top: max(14px, env(safe-area-inset-top)); padding-bottom: max(20px, env(safe-area-inset-bottom)); }
+  #btn-quiz { padding: 9px 12px; }
+}
+
+
+/* ---------- Bibliothèques ---------- */
+.c-cmd .etiquette { margin: 5px 6px 0 0; }
+.etiquette.biblio { background: color-mix(in srgb, #8e6bd8 18%, transparent); }
+button.etiquette.lien { border: none; font: inherit; font-size: .75rem; cursor: pointer; color: var(--texte); }
+button.etiquette.lien:hover { filter: brightness(.92); text-decoration: underline; }
+.etiquettes { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.facultatif { font-weight: 400; color: var(--doux); opacity: .8; }
+
 /* Version imprimable : cachée à l'écran */
 #impression { display: none; }
 
