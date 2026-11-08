@@ -52,10 +52,25 @@ function categories() {
 }
 
 /* ---------- Affichage ---------- */
+function parCategorie(a, b) {
+  return (a.categorie || "Autre").localeCompare(b.categorie || "Autre", "fr") || a.cmd.localeCompare(b.cmd, "fr");
+}
+
+// Entrées visibles avec la recherche, le filtre et le tri actuels
+function listeAffichee() {
+  const nq = normaliser($("#recherche").value.trim());
+  const tri = $("#tri").value;
+  const liste = entrees.filter((e) =>
+    (filtreCategorie === "Toutes" || (e.categorie || "Autre") === filtreCategorie) &&
+    (!nq || normaliser([e.cmd, e.role, e.exemple, e.categorie, e.notes].join(" ")).includes(nq)));
+  if (tri === "alpha") liste.sort((a, b) => a.cmd.localeCompare(b.cmd, "fr"));
+  else if (tri === "categorie") liste.sort(parCategorie);
+  else liste.sort((a, b) => b.cree - a.cree);
+  return liste;
+}
+
 function afficher() {
   const q = $("#recherche").value.trim();
-  const nq = normaliser(q);
-  const tri = $("#tri").value;
 
   // Puces de filtre
   const cats = categories();
@@ -67,15 +82,7 @@ function afficher() {
   $("#liste-categories").innerHTML = [...new Set(["Linux", "Git", "Python", "Arduino / ESP32", "Fonctions", ...cats])]
     .map((c) => `<option value="${echapper(c)}">`).join("");
 
-  // Filtrage + tri
-  let liste = entrees.filter((e) =>
-    (filtreCategorie === "Toutes" || (e.categorie || "Autre") === filtreCategorie) &&
-    (!nq || normaliser([e.cmd, e.role, e.exemple, e.categorie, e.notes].join(" ")).includes(nq)));
-
-  if (tri === "alpha") liste.sort((a, b) => a.cmd.localeCompare(b.cmd, "fr"));
-  else if (tri === "categorie") liste.sort((a, b) =>
-    (a.categorie || "Autre").localeCompare(b.categorie || "Autre", "fr") || a.cmd.localeCompare(b.cmd, "fr"));
-  else liste.sort((a, b) => b.cree - a.cree);
+  const liste = listeAffichee();
 
   lignes.innerHTML = liste.map((e) => `
     <tr data-id="${e.id}">
@@ -159,7 +166,15 @@ document.addEventListener("click", (ev) => {
   const b = ev.target.closest("[data-action]");
   if (!b) return;
   menu.hidden = true;
-  ({ exporter, importer: () => $("#fichier-import").click(), exemples: ajouterExemples, theme: basculerTheme, "tout-effacer": toutEffacer })[b.dataset.action]?.();
+  ({
+    pdf: ouvrirPdf,
+    exporter,
+    importer: () => $("#fichier-import").click(),
+    exemples: ajouterExemples,
+    "retirer-exemples": retirerExemples,
+    theme: basculerTheme,
+    "tout-effacer": toutEffacer,
+  })[b.dataset.action]?.();
 });
 
 function exporter() {
@@ -247,11 +262,101 @@ function ajouterExemples() {
   let n = 0, t = Date.now();
   for (const [cmd, role, exemple, categorie, notes = ""] of EXEMPLES) {
     if (cles.has(normaliser(cmd) + "|" + normaliser(categorie))) continue;
-    entrees.push({ id: nouvelId(), cree: t - n, cmd, role, exemple, categorie, notes });
+    entrees.push({ id: nouvelId(), cree: t - n, cmd, role, exemple, categorie, notes, source: "guide" });
     n++;
   }
   sauver(); afficher();
   toast(n ? `${n} commandes ajoutées` : "Déjà toutes présentes");
+}
+
+// Une entrée vient du guide si elle a été ajoutée par le bouton (source "guide"),
+// ou, pour les anciennes, si elle est identique à une commande du guide.
+function estDuGuide(e) {
+  if (e.source === "guide") return true;
+  const cle = (c, r, k) => normaliser(c) + "|" + normaliser(r) + "|" + normaliser(k);
+  return EXEMPLES.some(([c, r, , k]) => cle(c, r, k) === cle(e.cmd, e.role, e.categorie));
+}
+
+function retirerExemples() {
+  const duGuide = entrees.filter(estDuGuide);
+  if (!duGuide.length) return toast("Aucune commande du guide à retirer");
+  const modifiees = duGuide.filter((e) => e.modifie);
+  let aRetirer = duGuide;
+  let msg = `Retirer les ${duGuide.length} commandes du guide ?\nTes propres commandes ne seront pas touchées.`;
+  if (modifiees.length) {
+    msg += `\n\n${modifiees.length} d'entre elles ont été modifiées par toi : elles seront CONSERVÉES.`;
+    aRetirer = duGuide.filter((e) => !e.modifie);
+  }
+  if (!aRetirer.length) return toast("Toutes les commandes du guide ont été modifiées : rien à retirer");
+  if (!confirm(msg)) return;
+  const ids = new Set(aRetirer.map((e) => e.id));
+  entrees = entrees.filter((e) => !ids.has(e.id));
+  sauver(); afficher();
+  toast(`${aRetirer.length} commandes du guide retirées`);
+}
+
+/* ---------- Export PDF (via l'impression du navigateur) ---------- */
+const fenetrePdf = $("#fenetre-pdf");
+const formPdf = $("#form-pdf");
+
+function ouvrirPdf() {
+  if (!entrees.length) return toast("Le mémo est vide");
+  const nbAffiche = listeAffichee().length;
+  $("#nb-tout").textContent = `(${entrees.length})`;
+  $("#nb-affiche").textContent = `(${nbAffiche})`;
+  const filtreActif = nbAffiche > 0 && nbAffiche !== entrees.length;
+  $("#ligne-filtre").hidden = !filtreActif;
+  formPdf.elements.portee.value = "tout";
+  fenetrePdf.showModal();
+}
+fenetrePdf.querySelector("[data-fermer]").onclick = () => fenetrePdf.close();
+fenetrePdf.addEventListener("click", (ev) => { if (ev.target === fenetrePdf) fenetrePdf.close(); });
+
+formPdf.addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  const portee = formPdf.elements.portee.value;
+  const cols = [...formPdf.querySelectorAll('[name="col"]:checked')].map((c) => c.value);
+  const grouper = formPdf.elements.grouper.checked;
+  let liste = portee === "affiche" ? listeAffichee() : [...entrees];
+  if (grouper) liste.sort(parCategorie);
+  else if (portee === "tout") liste.sort((a, b) => a.cmd.localeCompare(b.cmd, "fr"));
+  fenetrePdf.close();
+  preparerImpression(liste, cols, grouper);
+  // Laisser le temps à la page de se mettre en forme avant d'ouvrir l'impression
+  setTimeout(() => window.print(), 150);
+});
+
+function preparerImpression(liste, cols, grouper) {
+  const titres = { exemple: "Exemple", categorie: "Catégorie", notes: "Notes" };
+  // La colonne Catégorie est inutile si on regroupe déjà par catégorie
+  const colsTableau = cols.filter((c) => !(grouper && c === "categorie"));
+  const entete = `<tr><th class="p-num">#</th><th>Commande / fonction</th><th>Rôle</th>${
+    colsTableau.map((c) => `<th>${titres[c]}</th>`).join("")}</tr>`;
+  let num = 0;
+  const ligne = (e) => `<tr><td class="p-num">${++num}</td><td><code>${echapper(e.cmd)}</code></td><td>${echapper(e.role)}</td>${
+    colsTableau.map((c) => `<td>${c === "exemple" && e.exemple ? `<code>${echapper(e.exemple)}</code>` : echapper(e[c] || "")}</td>`).join("")}</tr>`;
+
+  let corps = "";
+  if (grouper) {
+    const groupes = new Map();
+    for (const e of liste) {
+      const k = e.categorie || "Autre";
+      if (!groupes.has(k)) groupes.set(k, []);
+      groupes.get(k).push(e);
+    }
+    for (const [cat, items] of groupes) {
+      corps += `<h2>${echapper(cat)} <span>(${items.length})</span></h2><table><thead>${entete}</thead><tbody>${items.map(ligne).join("")}</tbody></table>`;
+    }
+  } else {
+    corps = `<table><thead>${entete}</thead><tbody>${liste.map(ligne).join("")}</tbody></table>`;
+  }
+
+  const date = new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+  $("#impression").innerHTML =
+    `<header><h1>Mémo commandes</h1><p>${liste.length} entrée(s) · ${date}</p></header>${corps}`;
+  const ancienTitre = document.title;
+  document.title = `memo-commandes-${new Date().toISOString().slice(0, 10)}`; // nom proposé pour le PDF
+  window.addEventListener("afterprint", () => { document.title = ancienTitre; }, { once: true });
 }
 
 /* ---------- Thème ---------- */

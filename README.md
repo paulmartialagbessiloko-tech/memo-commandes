@@ -11,6 +11,8 @@ Un petit carnet pour noter les commandes (Linux, Git, Python, Arduino/ESP32…) 
 - Installable sur téléphone (PWA), fonctionne **sans internet**
 - Thème clair / sombre
 - Export / import d'une sauvegarde (fichier JSON)
+- **Export PDF** : un tableau quadrillé (commande, rôle, exemple, catégorie, notes), regroupé par catégorie si on le souhaite. Menu ⋮ → Exporter en PDF, puis choisir « Enregistrer en PDF » comme imprimante.
+- Ajouter / retirer d'un coup les commandes du guide Linux (les commandes du guide que tu as modifiées sont conservées)
 
 ## Installer sur le téléphone
 - **Android (Chrome)** : ouvrir le lien → menu ⋮ → **Installer l'application** (ou « Ajouter à l'écran d'accueil »).

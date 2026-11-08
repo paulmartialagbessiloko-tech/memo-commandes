@@ -25,9 +25,11 @@
       <button id="btn-menu" class="btn btn-clair" aria-label="Menu">⋮</button>
     </div>
     <div id="menu" class="menu" hidden>
+      <button data-action="pdf">📄 Exporter en PDF</button>
       <button data-action="exporter">💾 Exporter (sauvegarde)</button>
       <button data-action="importer">📂 Importer une sauvegarde</button>
       <button data-action="exemples">📘 Ajouter les commandes du guide</button>
+      <button data-action="retirer-exemples">➖ Retirer les commandes du guide</button>
       <button data-action="theme">🌓 Thème clair / sombre</button>
       <button data-action="tout-effacer" class="danger">🗑️ Tout effacer</button>
     </div>
@@ -88,6 +90,32 @@
       </div>
     </form>
   </dialog>
+
+  <dialog id="fenetre-pdf">
+    <form id="form-pdf" method="dialog">
+      <h2>Exporter en PDF</h2>
+      <fieldset class="choix">
+        <legend>Que veux-tu exporter ?</legend>
+        <label class="radio"><input type="radio" name="portee" value="tout" checked> <span>Tout le mémo <b id="nb-tout"></b></span></label>
+        <label class="radio" id="ligne-filtre"><input type="radio" name="portee" value="affiche"> <span>Seulement ce qui est affiché <b id="nb-affiche"></b></span></label>
+      </fieldset>
+      <fieldset class="choix">
+        <legend>Colonnes</legend>
+        <label class="radio"><input type="checkbox" name="col" value="exemple" checked> <span>Exemple</span></label>
+        <label class="radio"><input type="checkbox" name="col" value="categorie" checked> <span>Catégorie</span></label>
+        <label class="radio"><input type="checkbox" name="col" value="notes" checked> <span>Notes</span></label>
+      </fieldset>
+      <label class="radio"><input type="checkbox" name="grouper" checked> <span>Regrouper par catégorie</span></label>
+      <p class="aide">À l'étape suivante, choisis <b>« Enregistrer en PDF »</b> comme imprimante.</p>
+      <div class="boutons-form">
+        <button type="button" class="btn btn-clair" data-fermer>Annuler</button>
+        <button type="submit" class="btn">📄 Créer le PDF</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Version imprimable (visible uniquement à l'impression / PDF) -->
+  <section id="impression" aria-hidden="true"></section>
 
   <input id="fichier-import" type="file" accept="application/json,.json" hidden>
   <div id="toast" class="toast" hidden></div>
