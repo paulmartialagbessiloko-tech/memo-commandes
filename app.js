@@ -242,62 +242,63 @@ function toutEffacer() {
 }
 
 /* ---------- Commandes du guide (APPRENDRE_LINUX) ---------- */
-const EXEMPLES = [
-  ["pwd", "Afficher le dossier où je suis", "pwd", "Linux"],
-  ["ls", "Lister le contenu d'un dossier", "ls -la", "Linux", "-l détails, -a fichiers cachés"],
-  ["cd", "Changer de dossier", "cd ~/projets", "Linux", "cd .. parent, cd ~ maison, cd - précédent"],
-  ["clear", "Effacer l'écran du terminal", "clear", "Linux", "Raccourci : Ctrl + L"],
-  ["mkdir -p", "Créer un dossier (et ses parents)", "mkdir -p robot/{src,config}", "Linux"],
-  ["touch", "Créer un fichier vide", "touch notes.txt", "Linux"],
-  ["cp", "Copier un fichier (-r pour un dossier)", "cp -r src sauvegarde", "Linux"],
-  ["mv", "Déplacer ou renommer", "mv ancien.txt nouveau.txt", "Linux"],
-  ["rm", "Supprimer (définitif, pas de corbeille)", "rm -r dossier", "Linux", "⚠️ Aucune corbeille"],
-  ["nano", "Éditer un fichier dans le terminal", "nano phrases.txt", "Linux", "Ctrl+O enregistrer, Ctrl+X quitter"],
-  ["cat", "Afficher tout un fichier", "cat phrases.txt", "Linux"],
-  ["less", "Lire un fichier page par page", "less log.txt", "Linux", "q quitter, /mot chercher"],
-  ["head / tail", "Premières / dernières lignes d'un fichier", "tail -f log.txt", "Linux", "tail -f suit le fichier en direct"],
-  ["grep", "Chercher un mot dans des fichiers", "grep -rin \"mal\" config/", "Linux", "-r récursif, -i sans casse, -n numéros de ligne"],
-  ["wc -l", "Compter les lignes", "wc -l phrases.txt", "Linux"],
-  ["|", "Envoyer la sortie d'une commande vers une autre", "cat f.txt | grep soif", "Linux"],
-  ["> / >>", "Écrire (écrase) / ajouter dans un fichier", "echo \"salut\" >> notes.txt", "Linux"],
-  ["chmod +x", "Rendre un fichier exécutable", "chmod +x script.sh && ./script.sh", "Linux"],
-  ["sudo", "Exécuter en administrateur", "sudo apt update", "Linux", "Le mot de passe ne s'affiche pas quand on le tape"],
-  ["apt install", "Installer un logiciel", "sudo apt install htop", "Linux", "Toujours faire sudo apt update avant"],
-  ["ps aux", "Lister les programmes en cours", "ps aux | grep python", "Linux"],
-  ["kill", "Arrêter un programme par son numéro (PID)", "kill 1234", "Linux"],
-  ["df -h", "Place libre sur les disques", "df -h", "Linux"],
-  ["free -h", "Mémoire RAM utilisée / libre", "free -h", "Linux"],
-  ["man", "Lire le manuel d'une commande", "man ls", "Linux"],
-  ["which", "Trouver où est installé un programme", "which python3", "Linux"],
-  ["uv venv", "Créer un environnement virtuel Python", "uv venv --python 3.11 .venv", "Python"],
-  ["source .venv/bin/activate", "Activer l'environnement virtuel", "source .venv/bin/activate", "Python", "deactivate pour en sortir"],
-  ["uv pip install", "Installer une bibliothèque Python", "uv pip install numpy", "Python", "Jamais sudo pip install"],
-  ["uv pip freeze", "Lister les bibliothèques installées", "uv pip freeze > requirements.txt", "Python"],
-  ["git init", "Créer un dépôt Git", "git init", "Git"],
-  ["git status", "Voir ce qui a changé", "git status", "Git"],
-  ["git add", "Préparer des fichiers pour le commit", "git add .", "Git"],
-  ["git commit", "Enregistrer une version", "git commit -m \"Ajout des phrases\"", "Git"],
-  ["git log --oneline", "Historique résumé", "git log --oneline", "Git"],
-  ["git diff", "Voir les modifications non préparées", "git diff", "Git"],
+// La liste EXEMPLES est dans exemples.js (générée à partir du guide).
+// Anciennes fiches (versions 1 à 5 de l'application), pour les reconnaître et les mettre à jour.
+const ANCIENS_EXEMPLES = [
+  ["pwd", "Afficher le dossier où je suis", "Linux"], ["ls", "Lister le contenu d'un dossier", "Linux"],
+  ["cd", "Changer de dossier", "Linux"], ["clear", "Effacer l'écran du terminal", "Linux"],
+  ["mkdir -p", "Créer un dossier (et ses parents)", "Linux"], ["touch", "Créer un fichier vide", "Linux"],
+  ["cp", "Copier un fichier (-r pour un dossier)", "Linux"], ["mv", "Déplacer ou renommer", "Linux"],
+  ["rm", "Supprimer (définitif, pas de corbeille)", "Linux"], ["nano", "Éditer un fichier dans le terminal", "Linux"],
+  ["cat", "Afficher tout un fichier", "Linux"], ["less", "Lire un fichier page par page", "Linux"],
+  ["head / tail", "Premières / dernières lignes d'un fichier", "Linux"], ["grep", "Chercher un mot dans des fichiers", "Linux"],
+  ["wc -l", "Compter les lignes", "Linux"], ["|", "Envoyer la sortie d'une commande vers une autre", "Linux"],
+  ["> / >>", "Écrire (écrase) / ajouter dans un fichier", "Linux"], ["chmod +x", "Rendre un fichier exécutable", "Linux"],
+  ["sudo", "Exécuter en administrateur", "Linux"], ["apt install", "Installer un logiciel", "Linux"],
+  ["ps aux", "Lister les programmes en cours", "Linux"], ["kill", "Arrêter un programme par son numéro (PID)", "Linux"],
+  ["df -h", "Place libre sur les disques", "Linux"], ["free -h", "Mémoire RAM utilisée / libre", "Linux"],
+  ["man", "Lire le manuel d'une commande", "Linux"], ["which", "Trouver où est installé un programme", "Linux"],
+  ["uv venv", "Créer un environnement virtuel Python", "Python"], ["source .venv/bin/activate", "Activer l'environnement virtuel", "Python"],
+  ["uv pip install", "Installer une bibliothèque Python", "Python"], ["uv pip freeze", "Lister les bibliothèques installées", "Python"],
+  ["git init", "Créer un dépôt Git", "Git"], ["git status", "Voir ce qui a changé", "Git"],
+  ["git add", "Préparer des fichiers pour le commit", "Git"], ["git commit", "Enregistrer une version", "Git"],
+  ["git log --oneline", "Historique résumé", "Git"], ["git diff", "Voir les modifications non préparées", "Git"],
 ];
+const cleCmd = (cmd, cat) => normaliser(cmd) + "|" + normaliser(cat || "Autre");
+
+// Ajoute les fiches du guide. Les fiches du guide déjà présentes et jamais modifiées par
+// l'utilisateur sont mises à jour avec la version détaillée ; les anciennes fiches devenues
+// inutiles (ex. « head / tail », remplacée par « head » et « tail ») sont retirées.
 function ajouterExemples() {
-  const cles = new Set(entrees.map((e) => normaliser(e.cmd) + "|" + normaliser(e.categorie)));
-  let n = 0, t = Date.now();
-  for (const [cmd, role, exemple, categorie, notes = ""] of EXEMPLES) {
-    if (cles.has(normaliser(cmd) + "|" + normaliser(categorie))) continue;
-    entrees.push({ id: nouvelId(), cree: t - n, cmd, role, exemple, categorie, notes, source: "guide" });
-    n++;
-  }
+  const nouvelles = new Set(EXEMPLES.map((x) => cleCmd(x.cmd, x.categorie)));
+  const avant = entrees.length;
+  entrees = entrees.filter((e) => !(estDuGuide(e) && !e.modifie && !nouvelles.has(cleCmd(e.cmd, e.categorie))));
+  const remplacees = avant - entrees.length;
+  let ajoutees = 0, majs = 0;
+  const t = Date.now();
+  EXEMPLES.forEach((x, i) => {
+    const e = entrees.find((y) => cleCmd(y.cmd, y.categorie) === cleCmd(x.cmd, x.categorie));
+    if (!e) {
+      entrees.push({ id: nouvelId(), cree: t - i, ...x, source: "guide" });
+      ajoutees++;
+    } else if (estDuGuide(e) && !e.modifie && (e.role !== x.role || e.exemple !== x.exemple || e.notes !== x.notes)) {
+      Object.assign(e, { role: x.role, exemple: x.exemple, notes: x.notes, source: "guide" });
+      majs++;
+    }
+  });
   sauver(); afficher();
-  toast(n ? `${n} commandes ajoutées` : "Déjà toutes présentes");
+  const msg = [ajoutees && `${ajoutees} ajoutée(s)`, majs && `${majs} mise(s) à jour`, remplacees && `${remplacees} ancienne(s) remplacée(s)`].filter(Boolean);
+  toast(msg.length ? "Commandes du guide : " + msg.join(", ") : "Déjà toutes présentes et à jour");
 }
 
 // Une entrée vient du guide si elle a été ajoutée par le bouton (source "guide"),
-// ou, pour les anciennes, si elle est identique à une commande du guide.
+// ou, pour les plus anciennes, si elle est identique à une fiche du guide (ancienne ou nouvelle).
 function estDuGuide(e) {
   if (e.source === "guide") return true;
   const cle = (c, r, k) => normaliser(c) + "|" + normaliser(r) + "|" + normaliser(k);
-  return EXEMPLES.some(([c, r, , k]) => cle(c, r, k) === cle(e.cmd, e.role, e.categorie));
+  const k = cle(e.cmd, e.role, e.categorie);
+  return EXEMPLES.some((x) => cle(x.cmd, x.role, x.categorie) === k) ||
+    ANCIENS_EXEMPLES.some(([c, r, cat]) => cle(c, r, cat) === k);
 }
 
 function retirerExemples() {

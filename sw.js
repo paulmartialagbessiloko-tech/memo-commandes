@@ -1,11 +1,12 @@
 // Service worker : permet d'utiliser l'application sans connexion internet.
 // Change VERSION à chaque mise à jour du site pour forcer le rafraîchissement.
-const VERSION = "v5";
+const VERSION = "v6";
 const CACHE = "memo-commandes-" + VERSION;
 const FICHIERS = [
   "./",
   "index.html",
   "style.css",
+  "exemples.js",
   "app.js",
   "manifest.webmanifest",
   "icons/icon.svg",
