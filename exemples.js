@@ -11,7 +11,7 @@ const EXEMPLES = [
  {
   "cmd": "ls",
   "role": "Lister le contenu d'un dossier",
-  "exemple": "ls -lah ~/apprentissage",
+  "exemple": "ls -lah ~/testLinux",
   "categorie": "Linux",
   "notes": "« List » : affiche les fichiers et dossiers du dossier courant (ou de celui que tu indiques). Sans option, l'affichage est court ; les options ajoutent des détails.\nOptions :\n  -l → format long : droits, propriétaire, taille, date\n  -a → affiche aussi les fichiers cachés (ceux qui commencent par un point, comme .bashrc)\n  -h → tailles lisibles (Ko, Mo) — avec -l\n  -R → affiche aussi le contenu des sous-dossiers\n  -t → trie du plus récent au plus ancien\n⚠️ Dans ls -l, la 1re lettre indique le type : d = dossier, - = fichier.\n📌 -l détails · -a cachés · -h tailles lisibles · -R sous-dossiers · -t par date. Les options se combinent : ls -lah"
  },
@@ -53,7 +53,7 @@ const EXEMPLES = [
  {
   "cmd": "cd",
   "role": "Changer de dossier",
-  "exemple": "cd ~/apprentissage/robot",
+  "exemple": "cd ~/testLinux/robot",
   "categorie": "Linux",
   "notes": "« Change Directory » : te déplace dans un autre dossier. Tu peux donner un chemin absolu (qui commence par /) ou relatif (à partir de l'endroit où tu es).\nOptions :\n  cd dossier → entre dans dossier (chemin relatif)\n  cd .. → remonte au dossier parent\n  cd ~ ou cd → retourne dans ton dossier personnel (/home/e14paul)\n  cd - → revient au dossier précédent\n  cd / → va à la racine du système\n⚠️ Un nom avec des espaces doit être entre guillemets : cd \"mon dossier\".\n📌 cd .. parent · cd ou cd ~ maison · cd - précédent · cd / racine. Touche Tab pour compléter les noms."
  },
@@ -95,14 +95,14 @@ const EXEMPLES = [
  {
   "cmd": "Tab",
   "role": "Compléter automatiquement un nom ou une commande",
-  "exemple": "cd ~/appr  puis Tab  →  cd ~/apprentissage/",
+  "exemple": "cd ~/test  puis Tab  →  cd ~/testLinux/",
   "categorie": "Linux",
   "notes": "Ce n'est pas une commande mais une touche. Tape le début d'un nom de fichier, de dossier ou de commande puis appuie sur Tab : le terminal complète. S'il y a plusieurs possibilités, appuie 2 fois pour les voir. Ça évite les fautes de frappe et fait gagner énormément de temps.\n📌 1 fois = compléter · 2 fois = voir les choix. Aussi : ↑ = commande précédente, Ctrl+R = chercher dans l'historique."
  },
  {
   "cmd": "mkdir",
   "role": "Créer un dossier",
-  "exemple": "mkdir -p ~/apprentissage/robot/{src,config,donnees}",
+  "exemple": "mkdir -p ~/testLinux/robot/{src,config,donnees}",
   "categorie": "Linux",
   "notes": "« Make Directory » : crée un ou plusieurs dossiers. Avec -p, crée aussi tous les dossiers parents manquants, et ne fait pas d'erreur si le dossier existe déjà.\nOptions :\n  -p → crée les dossiers parents si besoin (a/b/c en une fois)\n  {a,b,c} → les accolades créent plusieurs noms d'un coup\n📌 -p crée les parents. Les accolades {a,b} créent plusieurs dossiers d'un coup."
  },
@@ -380,6 +380,20 @@ const EXEMPLES = [
   "notes": "+x = ajouter le droit d'exécution. Ensuite : ./bonjour.sh\nSans lui : Permission denied."
  },
  {
+  "cmd": "chmod u+w",
+  "role": "Redonner à soi-même (u = user) le droit d'écrire dans un fichier",
+  "exemple": "chmod u+w phrases.txt",
+  "categorie": "Linux",
+  "notes": "Pour qui : u = moi, g = groupe, o = autres, a = tous. + ajoute, - retire.\nchmod -w fichier protège un fichier contre les modifications."
+ },
+ {
+  "cmd": "chmod 755",
+  "role": "Donner les droits rwxr-xr-x (script ou programme)",
+  "exemple": "chmod 755 bonjour.sh",
+  "categorie": "Linux",
+  "notes": "r = 4, w = 2, x = 1, additionnés pour moi / groupe / autres.\n755 = rwx r-x r-x (script) · 644 = rw- r-- r-- (fichier normal) · 600 = rw- --- --- (secret)."
+ },
+ {
   "cmd": "./script.sh",
   "role": "Lancer un programme ou un script du dossier courant",
   "exemple": "./bonjour.sh",
@@ -392,6 +406,13 @@ const EXEMPLES = [
   "exemple": "sudo apt update",
   "categorie": "Linux",
   "notes": "« Super User Do » : exécute la commande avec les droits d'administrateur (root). Nécessaire pour installer des logiciels ou modifier le système. Ton mot de passe est demandé : rien ne s'affiche quand tu le tapes, c'est normal.\n⚠️ Ne mets pas sudo devant tout « pour que ça marche » : une erreur en administrateur peut casser le système. Et jamais sudo pip install.\n📌 Mot de passe invisible quand on le tape. À n'utiliser que quand c'est nécessaire."
+ },
+ {
+  "cmd": "sudo !!",
+  "role": "Relancer la dernière commande en administrateur",
+  "exemple": "sudo !!",
+  "categorie": "Linux",
+  "notes": "!! = la dernière commande. Pratique quand on a oublié sudo et obtenu Permission denied."
  },
  {
   "cmd": "apt update",
@@ -429,6 +450,13 @@ const EXEMPLES = [
   "notes": "Affiche tous les processus (programmes en cours d'exécution) avec leur PID (numéro d'identification), leur utilisation du processeur et de la mémoire. Presque toujours utilisé avec grep pour trouver un programme précis.\n📌 2e colonne = PID. Combiner avec | grep nom."
  },
  {
+  "cmd": "ps aux | grep",
+  "role": "Trouver le PID d'un programme en cours",
+  "exemple": "ps aux | grep sleep",
+  "categorie": "Linux",
+  "notes": "2e colonne = PID. La ligne « grep … sleep » est grep lui-même : on l'ignore."
+ },
+ {
   "cmd": "kill",
   "role": "Arrêter un programme grâce à son numéro (PID)",
   "exemple": "kill 4321",
@@ -461,12 +489,12 @@ const EXEMPLES = [
   "role": "Voir la place libre sur les disques",
   "exemple": "df -h ~",
   "categorie": "Linux",
-  "notes": "« Disk Free » : affiche, pour chaque disque, la taille, l'espace utilisé et l'espace libre. -h rend les tailles lisibles.\n📌 Colonne « Disp. » = place libre. Utile avant d'enregistrer des données."
+  "notes": "« Disk Free » : affiche, pour chaque disque, la taille, l'espace utilisé et l'espace libre. -h rend les tailles lisibles.\n📌 Colonne Avail (disponible) = place libre. Utile avant d'enregistrer des données."
  },
  {
   "cmd": "du -sh",
   "role": "Connaître la taille d'un dossier",
-  "exemple": "du -sh ~/apprentissage",
+  "exemple": "du -sh ~/testLinux",
   "categorie": "Linux",
   "notes": "« Disk Usage » : calcule la place occupée par un dossier. -s donne un total (summary), -h des tailles lisibles.\n📌 -s total · -h lisible. du -sh * = taille de chaque élément du dossier."
  },
@@ -475,7 +503,7 @@ const EXEMPLES = [
   "role": "Voir la mémoire vive (RAM) utilisée et libre",
   "exemple": "free -h",
   "categorie": "Linux",
-  "notes": "Affiche la mémoire vive totale, utilisée et disponible. La colonne importante est « disponible ».\n📌 Regarder la colonne « disponible »."
+  "notes": "Affiche la mémoire vive totale, utilisée et disponible. La colonne importante est available (disponible).\n📌 Regarder la colonne available (disponible). Disque = armoire, RAM = plan de travail."
  },
  {
   "cmd": "$VARIABLE",
@@ -597,6 +625,13 @@ const EXEMPLES = [
   "notes": "Place les modifications dans la zone de préparation : c'est choisir ce qui fera partie de la prochaine « photo » (commit). git add . prépare tout le dossier.\n📌 git add . = tout préparer. Trajet : modifié → (add) → préparé → (commit) → historique"
  },
  {
+  "cmd": "git add .",
+  "role": "Préparer toutes les modifications du dossier pour le prochain commit",
+  "exemple": "git add .",
+  "categorie": "Git",
+  "notes": ". = tout le dossier courant (sauf ce qui est dans .gitignore). Vérifier avec git status : les fichiers passent en vert."
+ },
+ {
   "cmd": "git commit",
   "role": "Enregistrer une version dans l'historique",
   "exemple": "git commit -m \"Ajout des phrases du mode C\"",
@@ -639,6 +674,13 @@ const EXEMPLES = [
   "notes": "Remet un fichier dans l'état du dernier commit (les modifications non enregistrées sont perdues). Avec --source=identifiant, le remet dans l'état d'un commit plus ancien.\n📌 --source=<id> pour revenir à une ancienne version. ⚠️ Les modifications non commitées sont perdues."
  },
  {
+  "cmd": "git restore --source",
+  "role": "Remettre un fichier dans l'état d'un ancien commit",
+  "exemple": "git restore --source=a1b2c3d notes.txt",
+  "categorie": "Git",
+  "notes": "L'identifiant se trouve avec git log --oneline. Le fichier apparaît ensuite comme modifié : commit pour garder, git restore fichier pour annuler."
+ },
+ {
   "cmd": ".gitignore",
   "role": "Lister les fichiers que Git doit ignorer",
   "exemple": "echo \".venv/\" >> .gitignore",
@@ -679,5 +721,26 @@ const EXEMPLES = [
   "exemple": "cd \"/mnt/c/Users/E14/Desktop/robot suiveur de geste\"",
   "categorie": "Linux",
   "notes": "C: devient /mnt/c, les \\ deviennent des /, et les majuscules comptent.\nGuillemets obligatoires si le nom contient des espaces.\nLe ~ de Linux (/home/e14paul) n'est PAS ton dossier Windows C:\\Users\\E14."
+ },
+ {
+  "cmd": "jobs / fg",
+  "role": "Lister les tâches en arrière-plan / en ramener une au premier plan",
+  "exemple": "jobs",
+  "categorie": "Linux",
+  "notes": "Lancer en arrière-plan : commande &. fg ramène la dernière tâche ; Ctrl + C l'arrête ensuite."
+ },
+ {
+  "cmd": "Ctrl + C",
+  "role": "Arrêter le programme qui tourne au premier plan",
+  "exemple": "sleep 300   puis Ctrl + C",
+  "categorie": "Linux",
+  "notes": "Le réflexe quand le $ ne revient pas (programme bloqué, tail -f, boucle Python…).\nAttention : dans le terminal, Ctrl + C ne copie pas (copier = Ctrl + Maj + C)."
+ },
+ {
+  "cmd": "deactivate",
+  "role": "Désactiver l'environnement virtuel Python",
+  "exemple": "deactivate",
+  "categorie": "Python",
+  "notes": "Le nom entre parenthèses disparaît de l'invite. Pour réactiver : source .venv/bin/activate"
  }
 ];
