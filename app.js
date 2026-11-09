@@ -12,7 +12,48 @@ function charger() {
   try { return JSON.parse(localStorage.getItem(CLE)) || []; }
   catch { return []; }
 }
-function sauver() { localStorage.setItem(CLE, JSON.stringify(entrees)); }
+
+// Fiches supprimées volontairement pendant cette session (pour ne pas les faire revenir à la fusion).
+const supprimees = new Set();
+function oublier(ids) { for (const id of ids) supprimees.add(id); }
+
+// Copies de secours : les 8 dernières versions de la liste, gardées dans le téléphone.
+const CLE_SECOURS = CLE + ".secours";
+function lireSecours() {
+  try { return JSON.parse(localStorage.getItem(CLE_SECOURS)) || []; } catch { return []; }
+}
+function copieDeSecours(liste) {
+  if (!liste.length) return;
+  const copies = lireSecours();
+  const derniere = copies[0];
+  if (derniere && JSON.stringify(derniere.entrees) === JSON.stringify(liste)) return;
+  copies.unshift({ date: Date.now(), entrees: liste });
+  try { localStorage.setItem(CLE_SECOURS, JSON.stringify(copies.slice(0, 8))); } catch { /* stockage plein */ }
+}
+
+// Enregistre SANS jamais écraser des fiches ajoutées ailleurs (autre onglet, application
+// restée ouverte en arrière-plan) : les fiches présentes dans le stockage mais absentes
+// de la mémoire sont réintégrées, sauf si elles ont été supprimées volontairement.
+function sauver() {
+  const stockees = charger();
+  const ici = new Set(entrees.map((e) => e.id));
+  const manquantes = stockees.filter((e) => !ici.has(e.id) && !supprimees.has(e.id));
+  if (manquantes.length) entrees = entrees.concat(manquantes);
+  // Avant toute diminution de la liste, on garde une copie de secours de l'ancienne version.
+  if (entrees.length < stockees.length) copieDeSecours(stockees);
+  localStorage.setItem(CLE, JSON.stringify(entrees));
+  if (manquantes.length) afficher();
+}
+
+// Recharger la liste quand on revient sur l'application ou qu'un autre onglet la modifie.
+function rafraichir() {
+  if (document.querySelector("dialog[open]")) return; // ne pas perturber une saisie en cours
+  entrees = charger();
+  afficher();
+}
+document.addEventListener("visibilitychange", () => { if (!document.hidden) rafraichir(); });
+window.addEventListener("pageshow", rafraichir);
+window.addEventListener("storage", (ev) => { if (ev.key === CLE) rafraichir(); });
 function nouvelId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 
 /* ---------- Raccourcis DOM ---------- */
@@ -146,6 +187,7 @@ $("#btn-annuler").onclick = () => fenetre.close();
 $("#btn-supprimer").onclick = () => {
   const e = entrees.find((x) => x.id === enEdition);
   if (e && confirm(`Supprimer « ${e.cmd} » ?`)) {
+    oublier([enEdition]);
     entrees = entrees.filter((x) => x.id !== enEdition);
     sauver(); fenetre.close(); afficher(); toast("Supprimé");
   }
@@ -197,6 +239,7 @@ document.addEventListener("click", (ev) => {
     "retirer-exemples": retirerExemples,
     theme: basculerTheme,
     "tout-effacer": toutEffacer,
+    secours: restaurerSecours,
   })[b.dataset.action]?.();
 });
 
@@ -207,6 +250,7 @@ function exporter() {
   a.download = `memo-commandes-${new Date().toISOString().slice(0, 10)}.json`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  localStorage.setItem(CLE + ".dernierExport", Date.now());
   toast("Sauvegarde téléchargée");
 }
 
@@ -234,9 +278,27 @@ $("#fichier-import").addEventListener("change", async (ev) => {
   } catch { toast("Fichier invalide"); }
 });
 
+// Restaurer une copie de secours : les fiches de la copie qui manquent sont AJOUTÉES
+// (rien n'est supprimé ni écrasé dans la liste actuelle).
+function restaurerSecours() {
+  const copies = lireSecours();
+  if (!copies.length) return toast("Aucune copie de secours pour l'instant");
+  const choix = copies.map((c, i) => `${i + 1}) ${new Date(c.date).toLocaleString("fr-FR")} : ${c.entrees.length} fiches`).join("\n");
+  const rep = prompt(`Copies de secours (la plus récente en premier) :\n${choix}\n\nNuméro de la copie à restaurer :`);
+  const c = copies[parseInt(rep, 10) - 1];
+  if (!c) return;
+  const ici = new Set(entrees.map((e) => e.id));
+  const ajout = c.entrees.filter((e) => !ici.has(e.id));
+  for (const e of ajout) supprimees.delete(e.id);
+  entrees = entrees.concat(ajout);
+  sauver(); afficher();
+  toast(ajout.length ? `${ajout.length} fiche(s) restaurée(s)` : "Rien à restaurer : toutes ces fiches sont déjà là");
+}
+
 function toutEffacer() {
   if (!entrees.length) return;
   if (confirm("Tout effacer ? Pense à exporter une sauvegarde avant.") && confirm("Vraiment tout effacer ?")) {
+    oublier(entrees.map((e) => e.id));
     entrees = []; sauver(); afficher(); toast("Tout a été effacé");
   }
 }
@@ -272,6 +334,7 @@ const cleCmd = (cmd, cat) => normaliser(cmd) + "|" + normaliser(cat || "Autre");
 function ajouterExemples() {
   const nouvelles = new Set(EXEMPLES.map((x) => cleCmd(x.cmd, x.categorie)));
   const avant = entrees.length;
+  oublier(entrees.filter((e) => estDuGuide(e) && !e.modifie && !nouvelles.has(cleCmd(e.cmd, e.categorie))).map((e) => e.id));
   entrees = entrees.filter((e) => !(estDuGuide(e) && !e.modifie && !nouvelles.has(cleCmd(e.cmd, e.categorie))));
   const remplacees = avant - entrees.length;
   let ajoutees = 0, majs = 0;
@@ -314,6 +377,7 @@ function retirerExemples() {
   if (!aRetirer.length) return toast("Toutes les commandes du guide ont été modifiées : rien à retirer");
   if (!confirm(msg)) return;
   const ids = new Set(aRetirer.map((e) => e.id));
+  oublier(ids);
   entrees = entrees.filter((e) => !ids.has(e.id));
   sauver(); afficher();
   toast(`${aRetirer.length} commandes du guide retirées`);
@@ -627,6 +691,7 @@ $("#quiz-solution").addEventListener("click", (ev) => {
 
 // note : 1 = juste (niveau +1), 0.5 = presque (on garde le niveau mais on revoit plus tôt), 0 = faux (niveau 1)
 function noter(e, note) {
+  e = entrees.find((x) => x.id === e.id) || e; // la liste a pu être rechargée entre-temps
   const q = e.quiz || { boite: 1, vus: 0, reussis: 0 };
   q.vus++;
   if (note === 1) { q.reussis++; q.boite = Math.min(5, q.boite + 1); q.prochaine = Date.now() + DELAIS[q.boite] * JOUR; }
@@ -693,3 +758,11 @@ navigator.storage?.persist?.();
 /* ---------- Démarrage ---------- */
 $("#tri").value = localStorage.getItem(CLE + ".tri") || "recent";
 afficher();
+// Une copie de secours par jour au minimum.
+if (!lireSecours().length || Date.now() - lireSecours()[0].date > 864e5) copieDeSecours(entrees);
+// Rappel d'export : la copie de secours reste dans le téléphone ; un fichier exporté est plus sûr.
+{
+  const dernier = Number(localStorage.getItem(CLE + ".dernierExport")) || 0;
+  if (entrees.length >= 10 && Date.now() - dernier > 7 * 864e5)
+    setTimeout(() => toast("💾 Pense à exporter une sauvegarde (menu ⋮ → Exporter)"), 1500);
+}
